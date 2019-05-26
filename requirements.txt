@@ -6,13 +6,17 @@
 #
 aiodns==2.0.0
 aiohttp==3.5.4
+asn1crypto==0.24.0        # via cryptography
 async-timeout==3.0.1      # via aiohttp
 attrs==19.1.0             # via aiohttp
 cchardet==2.1.4
-cffi==1.12.3              # via pycares
+cffi==1.12.3              # via cryptography, pycares
 chardet==3.0.4            # via aiohttp
+cryptography==2.6.1
 idna==2.8                 # via yarl
 multidict==4.5.2          # via aiohttp, yarl
 pycares==3.0.0            # via aiodns
 pycparser==2.19           # via cffi
+pyjwt==1.7.1
+six==1.12.0               # via cryptography
 yarl==1.3.0               # via aiohttp

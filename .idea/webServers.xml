@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="3b1e55aa-f302-4580-8fed-98b2442762f5" name="ec2-35-180-226-207.eu-west-3.compute.amazonaws.com" url="http://ec2-35-180-226-207.eu-west-3.compute.amazonaws.com">
+        <fileTransfer host="ec2-35-180-226-207.eu-west-3.compute.amazonaws.com" port="22" privateKey="$USER_HOME$/.ssh/vlad-infra.pem" rootFolder="/home/ubuntu" accessType="SFTP" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

@@ -1,3 +1,5 @@
 aiohttp
 aiodns
 cchardet
+cryptography
+pyjwt
