@@ -1,22 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="ec2-35-180-226-207.eu-west-3.compute.amazonaws.com" deleteMissingItems="true" createEmptyFolders="true">
-    <serverData>
-      <paths name="Copy of project-level server 'ec2-35-180-226-207.eu-west-3.compute.amazonaws.com'">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/remote/code" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="ec2-35-180-226-207.eu-west-3.compute.amazonaws.com">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/remote/code" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-    </serverData>
+  <component name="PublishConfigData" autoUpload="Always" deleteMissingItems="true" createEmptyFolders="true">
     <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>
