@@ -5,7 +5,12 @@ from typing import Mapping
 
 from aiohttp import ClientSession, web
 import jwt
-from aiohttp.web_exceptions import HTTPProxyAuthenticationRequired
+from aiohttp.web_exceptions import (
+    HTTPUnauthorized,
+    HTTPProxyAuthenticationRequired,
+    HTTPBadRequest,
+)
+from jwt import DecodeError, ExpiredSignatureError
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +88,17 @@ class Proxy:
         except KeyError:
             logger.warning("No X-Amzn-Oidc-Data header present. Dropping request.")
             raise HTTPProxyAuthenticationRequired()
-        payload = await self.decode_data(oidc_data)
-        print(payload)
+        try:
+            payload = await self.decode_data(oidc_data)
+        except ExpiredSignatureError:
+            logger.warning("Got expired token. Dropping request.")
+            raise HTTPUnauthorized()
+        except DecodeError as e:
+            logger.warning("Couldn't decode token. Dropping request.")
+            logger.debug("Couldn't decode token: %s" % e)
+            raise HTTPBadRequest()
         resp = await handler(request)
+        resp.text += payload
         return resp
 
 
