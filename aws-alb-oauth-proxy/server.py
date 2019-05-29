@@ -1,7 +1,8 @@
+import asyncio
 import base64
 import json
 import logging
-from typing import Mapping
+from typing import Mapping, Optional
 
 from aiohttp import ClientSession, web
 import jwt
@@ -36,20 +37,24 @@ class Proxy:
     Some form of key caching may be useful and will be implemented later.
     """
 
-    def __init__(self, aws_region: str):
+    def __init__(self, aws_region: str, ignore_auth: bool = False):
         """Creates a server for a given AWS region.
         """
         self._aws_region = aws_region
+        self._ignore_auth = ignore_auth
 
     async def _setup_session(self, app):
         """Handle context sessions nicely.
 
         `See docs <https://docs.aiohttp.org/en/latest/client_advanced.html#persistent-session>`_"""
         self._key_session = ClientSession(raise_for_status=True)
+        self._upstream_session = ClientSession(raise_for_status=True)
         yield
-        await self._key_session.close()
+        await asyncio.gather(self._key_session.close(), self._upstream_session.close())
 
-    def setup_app(self):
+    def run_app(self):
+        if self._ignore_auth:
+            logger.warning("Authentication check disabled!")
         app = web.Application(middlewares=[self.auth_middleware])
         app.router.add_route("*", "/", self.handle_request)
         app.cleanup_ctx.append(self._setup_session)
@@ -77,19 +82,19 @@ class Proxy:
         payload = jwt.decode(oidc_data, pub_key, algorithms=[alg])
         return payload
 
-    async def handle_request(self, request):
-        return web.Response(text="sup")
+    async def check_auth(self, request: web.Request) -> Optional[Mapping[str, str]]:
+        if self._ignore_auth:
+            return None
 
-    @web.middleware
-    async def auth_middleware(self, request, handler):
         headers = request.headers
+
         try:
             oidc_data = headers["X-Amzn-Oidc-Data"]
         except KeyError:
             logger.warning("No X-Amzn-Oidc-Data header present. Dropping request.")
             raise HTTPProxyAuthenticationRequired()
         try:
-            payload = await self.decode_data(oidc_data)
+            return await self.decode_data(oidc_data)
         except ExpiredSignatureError:
             logger.warning("Got expired token. Dropping request.")
             raise HTTPUnauthorized()
@@ -97,10 +102,17 @@ class Proxy:
             logger.warning("Couldn't decode token. Dropping request.")
             logger.debug("Couldn't decode token: %s" % e)
             raise HTTPBadRequest()
+
+    async def handle_request(self, request):
+        return web.Response(text="sup")
+
+    @web.middleware
+    async def auth_middleware(self, request, handler):
+        payload = await self.check_auth(request)
         resp = await handler(request)
-        resp.text += payload
+        resp.text += str(payload)
         return resp
 
 
 if __name__ == "__main__":
-    Proxy("eu-west-3").setup_app()
+    Proxy("eu-west-3", ignore_auth=True).run_app()
