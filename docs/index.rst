@@ -1,10 +1,5 @@
-.. Amp Mate documentation master file, created by
-   sphinx-quickstart on Sun Apr 28 09:05:27 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to Amp Mate's documentation!
-====================================
+Welcome to aws-alb-oauth-proxy docs
+===================================
 
 .. toctree::
    :maxdepth: 2
