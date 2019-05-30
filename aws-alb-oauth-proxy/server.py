@@ -1,10 +1,8 @@
 import asyncio
-import base64
-import json
 import logging
 from typing import Mapping, Optional
 
-from aiohttp import ClientSession, web
+from aiohttp import ClientSession, web, DummyCookieJar
 import jwt
 from aiohttp.web_exceptions import (
     HTTPUnauthorized,
@@ -14,23 +12,20 @@ from aiohttp.web_exceptions import (
 from jwt import DecodeError, ExpiredSignatureError
 from yarl import URL
 
-from helpers import clean_response_headers
+from helpers import clean_response_headers, _kid_from_oidc_data
 
+
+LOG_LEVEL = logging.DEBUG
+
+# create logger
 logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
 
+# create handler
+ch = logging.StreamHandler()
+ch.setLevel(LOG_LEVEL)
 
-def _kid_from_oidc_data(oidc_data: str) -> (str, str):
-    """Returns the key ID and algorithm from AWS OIDC data
-
-    `AWS Documentation
-    <https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#user-claims-encoding>`_
-    """
-    headers = oidc_data.split(".")[0]
-
-    # Get Key ID
-    decoded_headers = base64.b64decode(headers).decode("utf-8")
-    json_headers = json.loads(decoded_headers)
-    return json_headers["kid"], json_headers["alg"]
+logger.addHandler(ch)
 
 
 class Proxy:
@@ -40,12 +35,12 @@ class Proxy:
     Some form of key caching may be useful and will be implemented later.
     """
 
-    def __init__(self, aws_region: str, upstream: URL, ignore_auth: bool = False):
+    def __init__(self, aws_region: str, upstream: str, ignore_auth: bool = False):
         """Creates a server for a given AWS region.
         """
         self._aws_region = aws_region
         self._ignore_auth = ignore_auth
-        self._upstream = upstream
+        self._upstream = URL(upstream)
         self._key_url = URL(
             f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com/"
         )
@@ -55,17 +50,21 @@ class Proxy:
 
         `See docs <https://docs.aiohttp.org/en/latest/client_advanced.html#persistent-session>`_"""
         self._key_session = ClientSession(raise_for_status=True)
-        self._upstream_session = ClientSession(raise_for_status=True)
+        self._upstream_session = ClientSession(
+            raise_for_status=True, cookie_jar=DummyCookieJar(), auto_decompress=False
+        )
         yield
         await asyncio.gather(self._key_session.close(), self._upstream_session.close())
 
     def run_app(self):
+        logger.info("Starting proxy...")
         if self._ignore_auth:
             logger.warning("Authentication check disabled!")
-        app = web.Application(middlewares=[self.auth_middleware])
+        app = web.Application(middlewares=[self.auth_middleware], logger=logger)
         app.router.add_route("*", "/{tail:.*}", self.handle_request)
         app.cleanup_ctx.append(self._setup_session)
         web.run_app(app)
+        logger.info("Proxy stopped.")
 
     async def _decode_data(self, oidc_data: str) -> Mapping[str, str]:
         """ Returns the payload of the OIDC data sent by the ALB
@@ -118,6 +117,7 @@ class Proxy:
             headers=clean_response_headers(request.headers),
             params=request.query,
             data=request.content,
+            cookies="",
             allow_redirects=False,
         )
 
@@ -126,6 +126,9 @@ class Proxy:
                 status=upstream_response.status, headers=upstream_response.headers
             )
 
+            logger.debug(
+                f"{upstream_response.status} URL: {upstream_url} HEADERS: {upstream_response.headers}"
+            )
             await response.prepare(request)
 
             async for data, last in upstream_response.content.iter_chunks():
