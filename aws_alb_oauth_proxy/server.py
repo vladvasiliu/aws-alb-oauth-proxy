@@ -57,9 +57,10 @@ class Proxy:
         await asyncio.gather(self._key_session.close(), self._upstream_session.close())
 
     def run_app(self):
-        logger.info("Starting proxy...")
+        logger.info("Starting auth proxy...")
+        logger.info(f"Upstream is {self._upstream}")
         if self._ignore_auth:
-            logger.warning("Authentication check disabled!")
+            logger.warning("!! Authentication check disabled !!")
         app = web.Application(middlewares=[self.auth_middleware], logger=logger)
         app.router.add_route("*", "/{tail:.*}", self.handle_request)
         app.cleanup_ctx.append(self._setup_session)
@@ -126,9 +127,7 @@ class Proxy:
                 status=upstream_response.status, headers=upstream_response.headers
             )
 
-            logger.debug(
-                f"{upstream_response.status} URL: {upstream_url} HEADERS: {upstream_response.headers}"
-            )
+            logger.debug(f"{upstream_response.status}: {upstream_url}")
             await response.prepare(request)
 
             async for data, last in upstream_response.content.iter_chunks():

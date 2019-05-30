@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" deleteMissingItems="true" createEmptyFolders="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="vlad-dev" deleteMissingItems="true" createEmptyFolders="true">
+    <serverData>
+      <paths name="vlad-dev">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/remote/code" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/docs/_build" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
     <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>
