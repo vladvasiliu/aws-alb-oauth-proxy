@@ -12,6 +12,9 @@ from aiohttp.web_exceptions import (
     HTTPBadRequest,
 )
 from jwt import DecodeError, ExpiredSignatureError
+from yarl import URL
+
+from helpers import clean_response_headers
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +40,15 @@ class Proxy:
     Some form of key caching may be useful and will be implemented later.
     """
 
-    def __init__(self, aws_region: str, ignore_auth: bool = False):
+    def __init__(self, aws_region: str, upstream: URL, ignore_auth: bool = False):
         """Creates a server for a given AWS region.
         """
         self._aws_region = aws_region
         self._ignore_auth = ignore_auth
+        self._upstream = upstream
+        self._key_url = URL(
+            f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com/"
+        )
 
     async def _setup_session(self, app):
         """Handle context sessions nicely.
@@ -56,18 +63,11 @@ class Proxy:
         if self._ignore_auth:
             logger.warning("Authentication check disabled!")
         app = web.Application(middlewares=[self.auth_middleware])
-        app.router.add_route("*", "/", self.handle_request)
+        app.router.add_route("*", "/{tail:.*}", self.handle_request)
         app.cleanup_ctx.append(self._setup_session)
         web.run_app(app)
 
-    # async def __aexit__(self, exc_type, exc_val, exc_tb):
-    #     await self._key_session.close()
-    #     await self._runner.cleanup()
-
-    def _key_url(self, kid: str) -> str:
-        return f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com/{kid}"
-
-    async def decode_data(self, oidc_data: str) -> Mapping[str, str]:
+    async def _decode_data(self, oidc_data: str) -> Mapping[str, str]:
         """ Returns the payload of the OIDC data sent by the ALB
 
         :param oidc_data: OIDC data from alb
@@ -76,25 +76,32 @@ class Proxy:
         """
         kid, alg = _kid_from_oidc_data(oidc_data)
 
-        async with self._key_session.get(self._key_url(kid)) as response:
+        async with self._key_session.get(self._key_url.join(kid)) as response:
             pub_key = await response.text()
 
         payload = jwt.decode(oidc_data, pub_key, algorithms=[alg])
         return payload
 
-    async def check_auth(self, request: web.Request) -> Optional[Mapping[str, str]]:
+    async def _auth_payload(self, request: web.Request) -> Optional[Mapping[str, str]]:
+        """Returns the authentication payload, if any, as a dictionary.
+
+        Catches exceptions from decoding the payload and converts them to HTTP exceptions to be propagated.
+        If authentication is disabled via :attr:`~_ignore_auth` doesn't verify anything and returns `None`.
+
+        Headers are kept in a `CIMultiDictProxy`_ so case of the header is not important.
+
+        .. _CIMultiDictProxy: https://multidict.readthedocs.io/en/stable/multidict.html#multidict.CIMultiDictProxy
+        """
         if self._ignore_auth:
             return None
 
-        headers = request.headers
-
         try:
-            oidc_data = headers["X-Amzn-Oidc-Data"]
+            oidc_data = request.headers["X-Amzn-Oidc-Data"]
         except KeyError:
-            logger.warning("No X-Amzn-Oidc-Data header present. Dropping request.")
+            logger.warning("No 'X-Amzn-Oidc-Data' header present. Dropping request.")
             raise HTTPProxyAuthenticationRequired()
         try:
-            return await self.decode_data(oidc_data)
+            return await self._decode_data(oidc_data)
         except ExpiredSignatureError:
             logger.warning("Got expired token. Dropping request.")
             raise HTTPUnauthorized()
@@ -104,15 +111,31 @@ class Proxy:
             raise HTTPBadRequest()
 
     async def handle_request(self, request):
-        return web.Response(text="sup")
+        upstream_url = self._upstream.join(request.url.relative())
+        upstream_request = self._upstream_session.request(
+            url=upstream_url,
+            method=request.method,
+            headers=clean_response_headers(request.headers),
+            params=request.query,
+            data=request.content,
+            allow_redirects=False,
+        )
+
+        async with upstream_request as upstream_response:
+            response = web.StreamResponse(
+                status=upstream_response.status, headers=upstream_response.headers
+            )
+
+            await response.prepare(request)
+
+            async for data, last in upstream_response.content.iter_chunks():
+                await response.write(data)
+
+            await response.write_eof()
+            return response
 
     @web.middleware
     async def auth_middleware(self, request, handler):
-        payload = await self.check_auth(request)
+        # payload = await self._auth_payload(request)
         resp = await handler(request)
-        resp.text += str(payload)
         return resp
-
-
-if __name__ == "__main__":
-    Proxy("eu-west-3", ignore_auth=True).run_app()
