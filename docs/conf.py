@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath("../"))
-sys.path.insert(0, os.path.abspath("../aws-alb-oauth-proxy"))
+sys.path.insert(0, os.path.abspath("../aws_alb_oauth_proxy"))
 
 
 # -- Project information -----------------------------------------------------
@@ -65,4 +65,8 @@ html_theme_options = {"analytics_id": "UA-140856341-1"}
 
 # -- Options for autodoc -----------------------------------------------------
 
-autodoc_default_options = {"member-order": "bysource", "private-members": True, "undoc-members": True}
+autodoc_default_options = {
+    "member-order": "bysource",
+    "private-members": True,
+    "undoc-members": True,
+}
