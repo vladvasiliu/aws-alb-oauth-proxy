@@ -5,6 +5,7 @@
       <w>amzn</w>
       <w>balancer</w>
       <w>grafana</w>
+      <w>logtz</w>
       <w>oidc</w>
     </words>
   </dictionary>

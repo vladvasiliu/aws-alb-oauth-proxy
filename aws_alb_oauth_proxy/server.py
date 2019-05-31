@@ -15,17 +15,7 @@ from yarl import URL
 from helpers import clean_response_headers, _kid_from_oidc_data
 
 
-LOG_LEVEL = logging.DEBUG
-
-# create logger
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-
-# create handler
-ch = logging.StreamHandler()
-ch.setLevel(LOG_LEVEL)
-
-logger.addHandler(ch)
 
 
 class Proxy:
@@ -60,7 +50,7 @@ class Proxy:
         logger.info("Starting auth proxy...")
         logger.info(f"Upstream is {self._upstream}")
         if self._ignore_auth:
-            logger.warning("!! Authentication check disabled !!")
+            logger.warning("Authentication check disabled!")
         app = web.Application(middlewares=[self.auth_middleware], logger=logger)
         app.router.add_route("*", "/{tail:.*}", self.handle_request)
         app.cleanup_ctx.append(self._setup_session)
