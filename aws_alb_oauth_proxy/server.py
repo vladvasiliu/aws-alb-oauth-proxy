@@ -39,7 +39,7 @@ class Proxy:
         yield
         await asyncio.gather(self._key_session.close(), self._upstream_session.close())
 
-    def run_app(self):
+    def runner(self):
         logger.info("Starting auth proxy...")
         logger.info(f"Upstream is {self._upstream}")
         if self._ignore_auth:
@@ -47,8 +47,7 @@ class Proxy:
         app = web.Application(middlewares=[self.auth_middleware], logger=logger)
         app.router.add_route("*", "/{tail:.*}", self.handle_request)
         app.cleanup_ctx.append(self._setup_session)
-        web.run_app(app)
-        logger.info("Proxy stopped.")
+        return web.AppRunner(app)
 
     async def _decode_data(self, oidc_data: str) -> Mapping[str, str]:
         """ Returns the payload of the OIDC data sent by the ALB
@@ -101,15 +100,15 @@ class Proxy:
             headers=clean_response_headers(request.headers),
             params=request.query,
             data=request.content,
-            cookies="",
             allow_redirects=False,
         )
-
         async with upstream_request as upstream_response:
             response = web.StreamResponse(status=upstream_response.status, headers=upstream_response.headers)
             await response.prepare(request)
             async for data, last in upstream_response.content.iter_chunks():
                 await response.write(data)
+                if upstream_response.content.at_eof():
+                    break
             await response.write_eof()
             return response
 

@@ -1,6 +1,10 @@
+import asyncio
 import argparse
 import logging
 import sys
+from concurrent.futures.process import ProcessPoolExecutor
+
+from aiohttp import web
 
 from helpers import _aws_region
 from server import Proxy
@@ -34,7 +38,9 @@ logger = logging.getLogger("main")
 numeric_level = getattr(logging, loglevel.upper(), None)
 if not isinstance(numeric_level, int):
     raise ValueError("Invalid log level: %s" % loglevel)
-logging.basicConfig(level=numeric_level)
+logging.basicConfig(
+    level=numeric_level, format="%(asctime)s %(processName)-22s %(levelname)-8s %(name)-15s %(message)s"
+)
 
 
 # Actual work
@@ -43,5 +49,42 @@ region = _aws_region()
 if not region:
     logger.error("Could not detect AWS region. Are we running on AWS?")
     sys.exit(1)
-proxy = Proxy(aws_region=region, upstream=upstream, ignore_auth=ignore_auth)
-proxy.run_app()
+
+
+def work():
+    proxy = Proxy(aws_region=region, upstream=upstream, ignore_auth=ignore_auth)
+    runner = proxy.runner()
+
+    async def start():
+        await runner.setup()
+        site = web.TCPSite(runner, port=port, reuse_address=True, reuse_port=True)
+        logger.debug("Started site...")
+        await site.start()
+
+    async def cleanup():
+        await runner.cleanup()
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+
+    try:
+        loop.run_until_complete(start())
+        logger.debug("Looping forever...")
+        loop.run_forever()
+    except Exception as exc:
+        logger.warning(f"Got exception: {exc}. Shutting down...")
+        loop.run_until_complete(cleanup())
+        loop.stop()
+
+
+with ProcessPoolExecutor(max_workers=4) as executor:
+    workers = {executor.submit(work) for _ in range(4)}
+    for future in workers:
+        try:
+            future.result
+        except Exception as exc:
+            logger.warning(f"Worker {future} got an exception: {exc}")
+        else:
+            logger.info(f"Worker {future} is shut down.")
