@@ -8,6 +8,8 @@ from aiohttp.web_exceptions import HTTPUnauthorized, HTTPProxyAuthenticationRequ
 from jwt import DecodeError, ExpiredSignatureError
 from yarl import URL
 
+from helpers import clean_response_headers
+
 logger = logging.getLogger(__name__)
 
 
