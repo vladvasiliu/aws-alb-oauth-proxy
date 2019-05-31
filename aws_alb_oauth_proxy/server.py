@@ -8,9 +8,6 @@ from aiohttp.web_exceptions import HTTPUnauthorized, HTTPProxyAuthenticationRequ
 from jwt import DecodeError, ExpiredSignatureError
 from yarl import URL
 
-from helpers import clean_response_headers, _kid_from_oidc_data
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,13 +18,12 @@ class Proxy:
     Some form of key caching may be useful and will be implemented later.
     """
 
-    def __init__(self, aws_region: str, upstream: str, ignore_auth: bool = False):
+    def __init__(self, upstream: str, aws_region: str, ignore_auth: bool = False):
         """Creates a server for a given AWS region.
         """
-        self._aws_region = aws_region
         self._ignore_auth = ignore_auth
         self._upstream = URL(upstream)
-        self._key_url = URL(f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com")
+        self._aws_region = aws_region
 
     async def _setup_session(self, app):
         """Handle context sessions nicely.
@@ -37,6 +33,7 @@ class Proxy:
         self._upstream_session = ClientSession(
             raise_for_status=True, cookie_jar=DummyCookieJar(), auto_decompress=False
         )
+        self._key_url = URL(f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com")
         yield
         await asyncio.gather(self._key_session.close(), self._upstream_session.close())
 

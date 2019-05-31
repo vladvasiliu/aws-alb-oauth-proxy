@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="vlad-dev" deleteMissingItems="true" createEmptyFolders="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="ubuntu@35.180.226.207:22" deleteMissingItems="true" createEmptyFolders="true">
     <serverData>
-      <paths name="vlad-dev">
+      <paths name="ubuntu@35.180.226.207:22">
         <serverdata>
           <mappings>
             <mapping deploy="/remote/code" local="$PROJECT_DIR$" web="/" />

@@ -1,6 +1,8 @@
 import argparse
 import logging
+import sys
 
+from helpers import _aws_region
 from server import Proxy
 
 # Command line arguments
@@ -28,7 +30,7 @@ loglevel = args.loglevel
 
 # Logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("main")
 numeric_level = getattr(logging, loglevel.upper(), None)
 if not isinstance(numeric_level, int):
     raise ValueError("Invalid log level: %s" % loglevel)
@@ -37,5 +39,9 @@ logging.basicConfig(level=numeric_level)
 
 # Actual work
 
-proxy = Proxy("eu-west-3", upstream=upstream, ignore_auth=ignore_auth)
+region = _aws_region()
+if not region:
+    logger.error("Could not detect AWS region. Are we running on AWS?")
+    sys.exit(1)
+proxy = Proxy(aws_region=region, upstream=upstream, ignore_auth=ignore_auth)
 proxy.run_app()
