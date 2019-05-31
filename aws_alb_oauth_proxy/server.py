@@ -4,11 +4,7 @@ from typing import Mapping, Optional
 
 from aiohttp import ClientSession, web, DummyCookieJar
 import jwt
-from aiohttp.web_exceptions import (
-    HTTPUnauthorized,
-    HTTPProxyAuthenticationRequired,
-    HTTPBadRequest,
-)
+from aiohttp.web_exceptions import HTTPUnauthorized, HTTPProxyAuthenticationRequired, HTTPBadRequest
 from jwt import DecodeError, ExpiredSignatureError
 from yarl import URL
 
@@ -31,9 +27,7 @@ class Proxy:
         self._aws_region = aws_region
         self._ignore_auth = ignore_auth
         self._upstream = URL(upstream)
-        self._key_url = URL(
-            f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com/"
-        )
+        self._key_url = URL(f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com/")
 
     async def _setup_session(self, app):
         """Handle context sessions nicely.
@@ -113,9 +107,7 @@ class Proxy:
         )
 
         async with upstream_request as upstream_response:
-            response = web.StreamResponse(
-                status=upstream_response.status, headers=upstream_response.headers
-            )
+            response = web.StreamResponse(status=upstream_response.status, headers=upstream_response.headers)
 
             logger.debug(f"{upstream_response.status}: {upstream_url}")
             await response.prepare(request)

@@ -11,21 +11,11 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("upstream", help="Upstream server URL: scheme://host:port")
 parser.add_argument("-p", "--port", type=int, default=8080, help="Port to listen on.")
+parser.add_argument("--ignore-auth", action="store_true", help="Whether to ignore the JWT token")
 parser.add_argument(
-    "--ignore-auth", action="store_true", help="Whether to ignore the JWT token"
+    "--loglevel", default="info", choices=["debug", "info", "warning", "error", "critical"], help="Logging verbosity"
 )
-parser.add_argument(
-    "--loglevel",
-    default="info",
-    choices=["debug", "info", "warning", "error", "critical"],
-    help="Logging verbosity",
-)
-parser.add_argument(
-    "--logtz",
-    default="local",
-    choices=["utc", "local"],
-    help="Time zone to use for logging",
-)
+parser.add_argument("--logtz", default="local", choices=["utc", "local"], help="Time zone to use for logging")
 
 args = parser.parse_args()
 
