@@ -27,7 +27,7 @@ class Proxy:
         self._aws_region = aws_region
         self._ignore_auth = ignore_auth
         self._upstream = URL(upstream)
-        self._key_url = URL(f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com/")
+        self._key_url = URL(f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com")
 
     async def _setup_session(self, app):
         """Handle context sessions nicely.
@@ -60,7 +60,7 @@ class Proxy:
         """
         kid, alg = _kid_from_oidc_data(oidc_data)
 
-        async with self._key_session.get(self._key_url.join(kid)) as response:
+        async with self._key_session.get(self._key_url.join(URL(kid))) as response:
             pub_key = await response.text()
 
         payload = jwt.decode(oidc_data, pub_key, algorithms=[alg])
@@ -108,18 +108,14 @@ class Proxy:
 
         async with upstream_request as upstream_response:
             response = web.StreamResponse(status=upstream_response.status, headers=upstream_response.headers)
-
-            logger.debug(f"{upstream_response.status}: {upstream_url}")
             await response.prepare(request)
-
             async for data, last in upstream_response.content.iter_chunks():
                 await response.write(data)
-
             await response.write_eof()
             return response
 
     @web.middleware
     async def auth_middleware(self, request, handler):
-        # payload = await self._auth_payload(request)
+        payload = await self._auth_payload(request)
         resp = await handler(request)
         return resp
