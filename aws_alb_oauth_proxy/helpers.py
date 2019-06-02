@@ -55,16 +55,14 @@ async def _instance_document() -> Optional[str]:
     .. _#3628: https://github.com/aio-libs/aiohttp/issues/3628
     .. _PR #3640: https://github.com/aio-libs/aiohttp/pull/3640
     """
-    session = aiohttp.ClientSession(raise_for_status=True, timeout=aiohttp.ClientTimeout(total=1))
-    try:
-        async with session.get("http://169.254.169.254/latest/dynamic/instance-identity/document") as response:
-            document = await response.text()
-    except TimeoutError:
-        logger.debug("Timeout while attempting to get instance document.")
-    else:
-        return json.loads(document)["region"]
-    finally:
-        await session.close()
+    async with aiohttp.ClientSession(raise_for_status=True, timeout=aiohttp.ClientTimeout(total=1)) as session:
+        try:
+            async with session.get("http://169.254.169.254/latest/dynamic/instance-identity/document") as response:
+                document = await response.text()
+        except TimeoutError:
+            logger.debug("Timeout while attempting to get instance document.")
+        else:
+            return json.loads(document)["region"]
 
 
 def _aws_region() -> Optional[str]:
