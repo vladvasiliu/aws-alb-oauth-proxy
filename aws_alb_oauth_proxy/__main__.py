@@ -79,12 +79,14 @@ def work():
         loop.stop()
 
 
-with ProcessPoolExecutor(max_workers=4) as executor:
-    workers = {executor.submit(work) for _ in range(4)}
-    for future in workers:
-        try:
-            future.result
-        except Exception as exc:
-            logger.warning(f"Worker {future} got an exception: {exc}")
-        else:
-            logger.info(f"Worker {future} is shut down.")
+# with ProcessPoolExecutor(max_workers=4) as executor:
+#     workers = {executor.submit(work) for _ in range(4)}
+#     for future in workers:
+#         try:
+#             future.result
+#         except Exception as exc:
+#             logger.warning(f"Worker {future} got an exception: {exc}")
+#         else:
+#             logger.info(f"Worker {future} is shut down.")
+
+work()

@@ -105,10 +105,11 @@ class Proxy:
         async with upstream_request as upstream_response:
             response = web.StreamResponse(status=upstream_response.status, headers=upstream_response.headers)
             await response.prepare(request)
-            async for data, last in upstream_response.content.iter_chunks():
+            async for data in upstream_response.content.iter_any():
+                print(upstream_response.content.at_eof())
                 await response.write(data)
-                if upstream_response.content.at_eof():
-                    break
+                # if upstream_response.content.at_eof():
+                #     break
             await response.write_eof()
             return response
 

@@ -6,7 +6,7 @@
       <sourceFolder url="file://$MODULE_DIR$/docs" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/docs/_build" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (aws-alb-oauth-proxy)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Remote Python 3.7.1 (sftp://ubuntu@ec2-35-180-226-207.eu-west-3.compute.amazonaws.com:22/home/ubuntu/remote/alb-env/bin/python)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">
