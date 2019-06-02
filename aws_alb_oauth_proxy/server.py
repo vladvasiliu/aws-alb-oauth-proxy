@@ -21,12 +21,27 @@ class Proxy:
     Some form of key caching may be useful and will be implemented later.
     """
 
-    def __init__(self, upstream: str, aws_region: str, ignore_auth: bool = False):
+    def __init__(
+        self,
+        upstream: str,
+        aws_region: str,
+        header_name: str = "X-WEBAUTH-USER",
+        header_property: str = "email",
+        ignore_auth: bool = False,
+    ):
         """Creates a server for a given AWS region.
+
+        :param upstream: The URL of the upstream server
+        :param aws_region: There AWS region where this is running, used to fetch the key.
+        :param header_name: HTTP header name to send, as configured in ``grafana.ini``.
+        :param header_property: The header property to use from the payload. Should match what Grafana expects.
+        :param ignore_auth: Whether to run without authentication. Should only be used in testing.
         """
         self._ignore_auth = ignore_auth
         self._upstream = URL(upstream)
         self._key_url = URL(f"https://public-keys.auth.elb.{aws_region}.amazonaws.com")
+        self._header_name = header_name
+        self._header_property = header_property
 
     async def _setup_session(self, app):
         """Handle context sessions nicely.
@@ -45,7 +60,7 @@ class Proxy:
         app.cleanup_ctx.append(self._setup_session)
         return web.AppRunner(app)
 
-    async def _decode_data(self, oidc_data: str) -> Mapping[str, str]:
+    async def _decode_payload(self, oidc_data: str) -> Mapping[str, str]:
         """ Returns the payload of the OIDC data sent by the ALB
 
         :param oidc_data: OIDC data from alb
@@ -58,13 +73,13 @@ class Proxy:
             pub_key = await response.text()
 
         payload = jwt.decode(oidc_data, pub_key, algorithms=[alg])
-        return payload
+        return payload[self._header_property]
 
-    async def _auth_payload(self, request: web.Request) -> Optional[Mapping[str, str]]:
-        """Returns the authentication payload, if any, as a dictionary.
+    async def _add_auth_info(self, request: web.Request):
+        """Adds the authentication information, if any, to the request.
 
         Catches exceptions from decoding the payload and converts them to HTTP exceptions to be propagated.
-        If authentication is disabled via :attr:`~_ignore_auth` doesn't verify anything and returns `None`.
+        If authentication is disabled via :attr:`~_ignore_auth` doesn't do anything.
 
         Headers are kept in a `CIMultiDictProxy`_ so case of the header is not important.
 
@@ -79,7 +94,7 @@ class Proxy:
             logger.warning("No 'X-Amzn-Oidc-Data' header present. Dropping request.")
             raise HTTPProxyAuthenticationRequired()
         try:
-            return await self._decode_data(oidc_data)
+            request["auth_payload"] = (self._header_name, await self._decode_payload(oidc_data))
         except ExpiredSignatureError:
             logger.warning("Got expired token. Dropping request.")
             raise HTTPUnauthorized()
@@ -89,12 +104,12 @@ class Proxy:
             raise HTTPBadRequest()
 
     @REQUEST_HISTOGRAM.time()
-    async def handle_request(self, request):
+    async def handle_request(self, request: web.Request) -> web.StreamResponse:
         upstream_url = self._upstream.join(request.url.relative())
         upstream_request = self._upstream_session.request(
             url=upstream_url,
             method=request.method,
-            headers=clean_response_headers(request.headers),
+            headers=clean_response_headers(request),
             params=request.query,
             data=request.content,
             allow_redirects=False,
@@ -110,6 +125,5 @@ class Proxy:
 
     @web.middleware
     async def auth_middleware(self, request, handler):
-        payload = await self._auth_payload(request)
-        resp = await handler(request)
-        return resp
+        await self._add_auth_info(request)
+        return await handler(request)
