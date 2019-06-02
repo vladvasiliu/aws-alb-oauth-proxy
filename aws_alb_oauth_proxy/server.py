@@ -2,13 +2,14 @@ import asyncio
 import logging
 from typing import Mapping, Optional
 
-from aiohttp import ClientSession, web, DummyCookieJar
 import jwt
+from aiohttp import ClientSession, web, DummyCookieJar
 from aiohttp.web_exceptions import HTTPUnauthorized, HTTPProxyAuthenticationRequired, HTTPBadRequest
 from jwt import DecodeError, ExpiredSignatureError
 from yarl import URL
 
 from helpers import clean_response_headers, _kid_from_oidc_data
+from monitoring import REQUEST_HISTOGRAM, UPSTREAM_STATUS_COUNTER
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,7 @@ class Proxy:
         """
         self._ignore_auth = ignore_auth
         self._upstream = URL(upstream)
-        self._aws_region = aws_region
-        self._key_url = URL(f"https://public-keys.auth.elb.{self._aws_region}.amazonaws.com")
+        self._key_url = URL(f"https://public-keys.auth.elb.{aws_region}.amazonaws.com")
 
     async def _setup_session(self, app):
         """Handle context sessions nicely.
@@ -40,10 +40,6 @@ class Proxy:
         await asyncio.gather(self._key_session.close(), self._upstream_session.close())
 
     def runner(self):
-        logger.info("Starting auth proxy...")
-        logger.info(f"Upstream is {self._upstream}")
-        if self._ignore_auth:
-            logger.warning("Authentication check disabled!")
         app = web.Application(middlewares=[self.auth_middleware], logger=logger)
         app.router.add_route("*", "/{tail:.*}", self.handle_request)
         app.cleanup_ctx.append(self._setup_session)
@@ -92,6 +88,7 @@ class Proxy:
             logger.debug("Couldn't decode token: %s" % e)
             raise HTTPBadRequest()
 
+    @REQUEST_HISTOGRAM.time()
     async def handle_request(self, request):
         upstream_url = self._upstream.join(request.url.relative())
         upstream_request = self._upstream_session.request(
@@ -103,13 +100,11 @@ class Proxy:
             allow_redirects=False,
         )
         async with upstream_request as upstream_response:
+            UPSTREAM_STATUS_COUNTER.labels(method=upstream_response.method, status=upstream_response.status).inc()
             response = web.StreamResponse(status=upstream_response.status, headers=upstream_response.headers)
             await response.prepare(request)
             async for data in upstream_response.content.iter_any():
-                print(upstream_response.content.at_eof())
                 await response.write(data)
-                # if upstream_response.content.at_eof():
-                #     break
             await response.write_eof()
             return response
 

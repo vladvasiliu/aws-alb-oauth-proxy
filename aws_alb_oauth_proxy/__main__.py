@@ -5,6 +5,7 @@ import sys
 from concurrent.futures.process import ProcessPoolExecutor
 
 from aiohttp import web
+from prometheus_client import start_http_server
 
 from helpers import _aws_region
 from server import Proxy
@@ -16,12 +17,13 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 parser.add_argument("upstream", help="Upstream server URL: scheme://host:port")
-parser.add_argument("-p", "--port", type=int, default=8080, help="Port to listen on.")
+parser.add_argument("-p", "--port", type=int, default=8080, help="Port to listen on")
 parser.add_argument("--ignore-auth", action="store_true", help="Whether to ignore the JWT token")
 parser.add_argument(
     "--loglevel", default="info", choices=["debug", "info", "warning", "error", "critical"], help="Logging verbosity"
 )
-parser.add_argument("--logtz", default="local", choices=["utc", "local"], help="Time zone to use for logging")
+# parser.add_argument("--logtz", default="local", choices=["utc", "local"], help="Time zone to use for logging")
+parser.add_argument("--mon-port", type=int, default=8081, help="Port for exposing metrics")
 
 args = parser.parse_args()
 
@@ -31,6 +33,7 @@ ignore_auth = args.ignore_auth
 
 loglevel = args.loglevel
 
+monitor_port = args.mon_port
 
 # Logging
 
@@ -46,9 +49,13 @@ logging.basicConfig(
 # Actual work
 
 region = _aws_region()
-if not region:
+if not region and not ignore_auth:
     logger.error("Could not detect AWS region. Are we running on AWS?")
     sys.exit(1)
+
+logger.info(f"Upstream:     {upstream}")
+logger.info(f"Client port:  {port}")
+logger.info(f"Metrics port: {monitor_port}")
 
 
 def work():
@@ -71,7 +78,6 @@ def work():
 
     try:
         loop.run_until_complete(start())
-        logger.debug("Looping forever...")
         loop.run_forever()
     except Exception as exc:
         logger.warning(f"Got exception: {exc}. Shutting down...")
@@ -89,4 +95,5 @@ def work():
 #         else:
 #             logger.info(f"Worker {future} is shut down.")
 
+start_http_server(monitor_port)
 work()

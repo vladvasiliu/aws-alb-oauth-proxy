@@ -6,5 +6,5 @@
   <component name="NodePackageJsonFileManager">
     <packageJsonPaths />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.7.1 (sftp://ubuntu@ec2-35-180-226-207.eu-west-3.compute.amazonaws.com:22/home/ubuntu/remote/alb-env/bin/python)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7 (aws-alb-oauth-proxy)" project-jdk-type="Python SDK" />
 </project>

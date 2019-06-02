@@ -2,4 +2,5 @@ aiohttp
 aiodns
 cchardet
 cryptography
+prometheus_client
 pyjwt
