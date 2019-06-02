@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Mapping, Optional
+from typing import Mapping
 
 import jwt
 from aiohttp import ClientSession, web, DummyCookieJar
@@ -8,7 +8,7 @@ from aiohttp.web_exceptions import HTTPUnauthorized, HTTPProxyAuthenticationRequ
 from jwt import DecodeError, ExpiredSignatureError
 from yarl import URL
 
-from helpers import clean_response_headers, _kid_from_oidc_data
+from helpers import clean_response_headers
 from monitoring import REQUEST_HISTOGRAM, UPSTREAM_STATUS_COUNTER
 
 logger = logging.getLogger(__name__)
@@ -63,11 +63,16 @@ class Proxy:
     async def _decode_payload(self, oidc_data: str) -> Mapping[str, str]:
         """ Returns the payload of the OIDC data sent by the ALB
 
+        `Relevant AWS Documentation
+        <https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#user-claims-encoding>`_
+
         :param oidc_data: OIDC data from alb
         :return: payload
         :raise: jwt.exceptions.ExpiredSignatureError: If the token is not longer valid
         """
-        kid, alg = _kid_from_oidc_data(oidc_data)
+        header = jwt.get_unverified_header(oidc_data)
+        kid = header["kid"]
+        alg = header["alg"]
 
         async with self._key_session.get(self._key_url.join(URL(kid))) as response:
             pub_key = await response.text()

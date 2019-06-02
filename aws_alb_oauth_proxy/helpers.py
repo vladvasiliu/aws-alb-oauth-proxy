@@ -1,5 +1,4 @@
 import asyncio
-import base64
 from concurrent.futures import TimeoutError
 import json
 import logging
@@ -32,20 +31,6 @@ def clean_response_headers(request: web.Request) -> CIMultiDictProxy:
     else:
         clean_headers.add(*auth_header)
     return CIMultiDictProxy(clean_headers)
-
-
-def _kid_from_oidc_data(oidc_data: str) -> (str, str):
-    """Returns the key ID and algorithm from AWS OIDC data
-
-    `AWS Documentation
-    <https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html#user-claims-encoding>`_
-    """
-    headers = oidc_data.split(".")[0]
-
-    # Get Key ID
-    decoded_headers = base64.b64decode(headers).decode("utf-8")
-    json_headers = json.loads(decoded_headers)
-    return json_headers["kid"], json_headers["alg"]
 
 
 async def _instance_document() -> Optional[str]:
