@@ -20,7 +20,7 @@ A docker container is available on Docker Hub. There are two tags:
 ``vX.Y``
   This is the *release* tag and supposed to be stable.
 
-.. code-block::
+.. code-block:: sh
 
     $ docker run vladvasiliu/aws-alb-oauth-proxy:latest http://grafana.internal:3000
 
