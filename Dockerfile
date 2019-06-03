@@ -9,20 +9,20 @@ ARG MON_PORT=8081
 EXPOSE $PROXY_PORT
 EXPOSE $MON_PORT
 
-RUN     pip install virtualenv && \
-        virtualenv /venv && \
-        source /venv/bin/activate
-COPY    requirements.txt /
-COPY    aws_alb_oauth_proxy /venv/
 
 RUN apk add --no-cache --virtual build-dependencies \
                                  build-base \
                                  libffi-dev \
                                  openssl-dev
-RUN pip install -r /requirements.txt
+COPY    requirements.txt /
+RUN     pip install virtualenv && \
+        virtualenv /venv && \
+        source /venv/bin/activate && \
+        pip install -r /requirements.txt
+COPY    aws_alb_oauth_proxy /venv/aws_alb_oauth_proxy
 
 
 FROM python:3.7.3-alpine3.9
 COPY --from=builder /venv /venv
 
-ENTRYPOINT ["python", "/aws_alb_oauth_proxy"]
+ENTRYPOINT ["/venv/bin/python", "/venv/aws_alb_oauth_proxy"]
