@@ -25,8 +25,7 @@ We use extensively Single Sign-On for most of our web applications. There are tw
 Quick start
 -----------
 
-A Docker container is available `on Docker hub <https://cloud.docker.com/u/vladvasiliu/repository/docker/vladvasiliu/aws-alb-oauth-proxy/general>`_.
-
-.. code-block::
+A Docker container is available `on Docker hub <https://cloud.docker.com/u/vladvasiliu/repository/docker/vladvasiliu/aws-alb-oauth-proxy/general>`_::
 
     $ docker run vladvasiliu/aws-alb-oauth-proxy:latest http://grafana.internal:3000
+
