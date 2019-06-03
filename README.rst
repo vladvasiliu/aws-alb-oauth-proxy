@@ -1,4 +1,4 @@
-|Style badge| |Docs badge| |License badge|
+|Scrutinizer| |Style badge| |Docs badge| |License badge|
 
 
 aws-alb-oauth-proxy
@@ -8,6 +8,42 @@ This is a proxy that sits between an application that doesn't handle JWT and an 
 It decodes the JWT and sends the relevant information as HTTP headers.
 
 It can be seen as a translation layer between JWT and classic Auth Proxy.
+
+Usage
+-----
+
+See `the docs <https://aws-alb-oauth-proxy.readthedocs.io/en/latest>`_ for details.
+
+Docker
+~~~~~~
+
+`There's a build available on Docker Hub <https://hub.docker.com/r/vladvasiliu/aws-alb-oauth-proxy>`_.
+
+.. code-block::
+
+  $ docker run vladvasiliu/aws-alb-oauth-proxy:latest http://upstream.url
+
+For a quick help:
+
+.. code-block::
+
+  $ docker run vladvasiliu/aws-alb-oauth-proxy:latest -h
+
+From source
+~~~~~~~~~~~
+
+.. code-block::
+
+  $ cd aws-alb-oauth-proxy/
+  $ pip install -r requirements.txt
+  $ python aws_alb_oauth_proxy http://upstream.url
+
+For a quick help:
+
+.. code-block::
+
+  $ python aws_alb_oauth_proxy -h
+
 
 Use case
 --------
@@ -36,6 +72,8 @@ License
 -------
 This code is distributed under GPLv3. See `LICENSE <LICENSE>`_ for the full text.
 
+.. |Scrutinizer| image:: https://scrutinizer-ci.com/g/vladvasiliu/aws-alb-oauth-proxy/badges/quality-score.png?b=master
+   :target: https://scrutinizer-ci.com/g/vladvasiliu/aws-alb-oauth-proxy/
 .. |Style badge| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/python/black
 .. |License badge| image:: https://img.shields.io/github/license/vladvasiliu/aws-alb-oauth-proxy.svg

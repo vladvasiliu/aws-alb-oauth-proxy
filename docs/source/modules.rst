@@ -1,5 +1,5 @@
-aws-alb-oauth-proxy
-===================
+aws\_alb\_oauth\_proxy
+======================
 
 .. toctree::
    :maxdepth: 4
