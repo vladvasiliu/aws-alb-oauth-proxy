@@ -1,5 +1,7 @@
-Welcome to aws-alb-oauth-proxy docs
-===================================
+AWS ALB OAuth proxy
+===================
+
+Welcome to AWS ALB OAuth proxy docs!
 
 .. toctree::
    :maxdepth: 2
