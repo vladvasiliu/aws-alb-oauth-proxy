@@ -78,7 +78,11 @@ class Proxy:
             pub_key = await response.text()
 
         payload = jwt.decode(oidc_data, pub_key, algorithms=[alg])
-        return payload[self._header_property]
+        try:
+            return payload[self._header_property]
+        except KeyError:
+            logger.warning(f"Could not find '{self._header_property}' key in OIDC Data.")
+            raise HTTPBadRequest
 
     async def _add_auth_info(self, request: web.Request):
         """Adds the authentication information, if any, to the request.

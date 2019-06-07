@@ -1,6 +1,6 @@
 FROM python:3.7.3-alpine3.9 AS builder
 
-LABEL version="0.9"
+LABEL version="0.11"
 LABEL description="AWS ALB OAuth Proxy"
 LABEL maintainer="Vlad Vasiliu <vladvasiliun@yahoo.fr>"
 
